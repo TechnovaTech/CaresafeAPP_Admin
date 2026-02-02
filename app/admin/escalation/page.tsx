@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, AlertTriangle, RotateCcw, Eye, X, Search } from 'lucide-react'
+import { Clock, AlertTriangle, RotateCcw, Eye, X, Search, Edit, Plus } from 'lucide-react'
 
 const escalationCases = [
   {
@@ -61,7 +61,9 @@ const getStatusColor = (status: string) => {
 export default function EscalationPage() {
   const [selectedCase, setSelectedCase] = useState<any>(null)
   const [showModal, setShowModal] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [editData, setEditData] = useState<any>({})
 
   const filteredCases = escalationCases.filter(escalationCase => 
     escalationCase.sosId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,20 +74,27 @@ export default function EscalationPage() {
 
   const handleShow = (escalationCase: any) => {
     setSelectedCase(escalationCase)
+    setIsEditMode(false)
     setShowModal(true)
   }
 
-  const handleStatusChange = (newStatus: string) => {
-    setSelectedCase({ ...selectedCase, status: newStatus })
+  const handleEdit = (escalationCase: any) => {
+    setSelectedCase(escalationCase)
+    setEditData(escalationCase)
+    setIsEditMode(true)
+    setShowModal(true)
   }
 
-  const handleReassign = () => {
-    alert('Case reassigned successfully!')
+  const handleSave = () => {
+    alert('Case updated successfully!')
+    setShowModal(false)
   }
 
   const closeModal = () => {
     setShowModal(false)
     setSelectedCase(null)
+    setIsEditMode(false)
+    setEditData({})
   }
 
   return (
@@ -153,10 +162,17 @@ export default function EscalationPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button
                       onClick={() => handleShow(escalationCase)}
-                      className="text-primary hover:text-blue-700 p-1"
+                      className="text-blue-600 hover:text-blue-800 p-1 mr-2"
                       title="Show Details"
                     >
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(escalationCase)}
+                      className="text-green-600 hover:text-green-800 p-1"
+                      title="Edit Case"
+                    >
+                      <Edit className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -166,12 +182,14 @@ export default function EscalationPage() {
         </div>
       </div>
 
-      {/* Case Management Modal */}
+      {/* Case Modal */}
       {showModal && selectedCase && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Case Management</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                {isEditMode ? 'Edit Case' : 'Case Details'}
+              </h3>
               <button
                 onClick={closeModal}
                 className="text-gray-400 hover:text-gray-600"
@@ -182,78 +200,129 @@ export default function EscalationPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700">SOS ID</label>
-                <p className="text-sm text-gray-900">{selectedCase.sosId}</p>
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    value={editData.sosId || ''}
+                    onChange={(e) => setEditData({...editData, sosId: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <p className="text-sm text-gray-900">{selectedCase.sosId}</p>
+                )}
               </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-700">Patient</label>
-                <p className="text-sm text-gray-900">{selectedCase.patientName}</p>
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    value={editData.patientName || ''}
+                    onChange={(e) => setEditData({...editData, patientName: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <p className="text-sm text-gray-900">{selectedCase.patientName}</p>
+                )}
               </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-700">Priority</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedCase.priority)}`}>
-                  {selectedCase.priority}
-                </span>
+                {isEditMode ? (
+                  <select
+                    value={editData.priority || ''}
+                    onChange={(e) => setEditData({...editData, priority: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                ) : (
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedCase.priority)}`}>
+                    {selectedCase.priority}
+                  </span>
+                )}
               </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-700">SLA Timer</label>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <p className="text-sm text-gray-900 font-mono">{selectedCase.slaTimer}</p>
-                </div>
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    value={editData.slaTimer || ''}
+                    onChange={(e) => setEditData({...editData, slaTimer: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    <p className="text-sm text-gray-900 font-mono">{selectedCase.slaTimer}</p>
+                  </div>
+                )}
               </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-700">Assigned To</label>
-                <p className="text-sm text-gray-900">{selectedCase.assignedTo}</p>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700">Escalation Level</label>
-                <p className="text-sm text-gray-900">Level {selectedCase.escalationLevel}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  value={selectedCase.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="Open">Open</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
-              
-              <div className="pt-4 space-y-3">
-                <button
-                  onClick={handleReassign}
-                  className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Reassign Case</span>
-                </button>
-                
-                {selectedCase.autoReassign && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                    <div className="flex items-center space-x-2">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <span className="text-sm text-yellow-800">Auto-reassign active</span>
-                    </div>
-                  </div>
+                {isEditMode ? (
+                  <select
+                    value={editData.assignedTo || ''}
+                    onChange={(e) => setEditData({...editData, assignedTo: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Admin 1">Admin 1</option>
+                    <option value="Admin 2">Admin 2</option>
+                    <option value="Admin 3">Admin 3</option>
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-900">{selectedCase.assignedTo}</p>
                 )}
-                
-                <button
-                  onClick={closeModal}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Close
-                </button>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                {isEditMode ? (
+                  <select
+                    value={editData.status || ''}
+                    onChange={(e) => setEditData({...editData, status: e.target.value})}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                ) : (
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedCase.status)}`}>
+                    {selectedCase.status}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                {isEditMode ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                )}
               </div>
             </div>
           </div>
